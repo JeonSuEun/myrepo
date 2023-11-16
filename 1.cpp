@@ -1,16 +1,16 @@
-while (!is_empty){
+int offset[4][2] = { {-1,0},{0,1},{1,0},{0,-1} };
+	while (!is_empty()){
 	position p = dequeue();
 	for (int dir = 0; dir < 4; dir++) {
 		for (int dist = 1; dist < N; dist++) {
-			int xx = p.x + dist * offset[dir][0];
-			int yy = p.y + dist * offset[dir][1];
-			if (xx < 0 || xx >= N || yy < 0 || yy >= N || maze[xx][yy] == 1)
+			position q;
+			q.x = p.x + dist * offset[dir][0];
+			q.y = p.y + dist * offset[dir][1];
+			if (q.x < 0 || q.x >= N || q.y < 0 || q.y >= N || maze[q.x][q.y] == 1)
 				break;
-			if (maze[xx][yy] == 0) {
-				position q;
-				q.x = xx, q.y == y;
+			if (maze[q.x][q.y] == 0) {		
 				enqueue(q);
-				maze[xx][yy] = ? ;
+				maze[q.x][q.y] = ? ;
 			}
 		}
 	}
