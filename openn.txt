@@ -1,0 +1,379 @@
+pwd 현재위치
+ls -al 파일전체~
+file passwd
+
+&& 앞명령어 성공하면 뒤 명령어 실행
+|| 앞명령어 실패하면 뒤 명령어 실행
+| 이전 명령어의 출력을 다음 명령어의 입력으로 전달
+
+
+mkdir (디렉토리생성)
+rmdir (디렉토리지우기)
+touch -t 202101010301 file1 (2021년 1월1일 새벽 3시 1분에 파일명 업데이트)
+touch file1(원래대로)
+date
+rm file1(바로 지워짐 )
+cp file1.txt file2.txt (file1.txt를 file2.txt이름으로 새로 복사해라)
+cp file1.txt test/file2.txt(file1.txt를 test폴더 밑 file2.txt라는 이름으로 복사해라)
+cd test 후 cp ../file1.txt . (상위폴더에 있는 file1.txt를 현재디렉토리로 복사(.) 똑같은 이름으로 복사됨)
+cp file1.txt /tmp/file2.txt (file1.txt를 tmp폴더 밑에 file2.txt라는 이름으로 복사)
+rm /tmp/file2.txt (tmp밑에 있는 file2.txt 삭제)
+mv file1.txt /tmp(현재 폴더에있는 file1.txt를 tmp폴더로 이동)
+mv file1.txt / (루트 폴더로는 복사 나 이동 불가)
+cat /etc/services (이 파일의 전체내용 보기)
+head /etc/services(이 파일의 앞부분 10줄 만봄)
+head -20 /etc/services(이 파일의 앞부분 20줄 만봄)
+tail /etc/services (뒷부분 10줄) tail -20 /etc/services(뒷부분 20줄)
+more /etc/services(앞부분을 한 화면에 보여줌 enter를 치면 한줄씩 스페이스 누르면 다음화면)
+빠져나가려면 q를 누르면됨
+less /etc/services(방향키로 가능 밑 위 옆 화면)
+cat /etc/services > my-service( 왼쪽 파일의 내용을 my-service파일에 출력 (현재 디렉토리(지금은 oss/test)에 my-service파일이 만들어질 것))
+cat > myfile.txt(입력을 표준입력으로 받는데 이건 키보드임(현재 터미널에서) 그래서 키보드에서 입력받은 내용을 myfile.txt에 출력 (ctrl+d 누르면 입력끝))
+>(리다이렉션?)
+연습문제 9.9. practice: working with files
+10.7
+-----------------------------------
+3-3
+ls | more (명령의 결과를 페이지단위로 볼 수 있음)
+ls *.conf(.conf로 끝나는 모든 파일 볼 수 있음)
+skel/(ls -al를 해서 확인 가능 .파일이라~)
+echo $HOME(HOME 디렉토리로 이동)
+cd /etc 후 ls -al passwd(에서 나오는 처음 root:x:0:0:root:/root:/bin/bash(처음은 사용자,x는 그냥나오는,0은 user id number,그 다음 0은 group number,그 다음 root는 그룹의 이름,그 다음 root는 user의 홈 디렉토리)
+내 jse는 마지막에 출력 되 있음
+etc밑에 shadow파일 cat shadow (관리자 권한 필요 ) -> sudo cat shadow(관리자 권한으로 명령어 실행)
+shadow에는 사용자의 패스워드(암호화 된)가 들어가 있음
+echo Hello World(Hello[0] World[1] 출력)
+type cd ( builtin 명령)
+type ls (aliased) ~ 이런식으로 무슨 명령인지 나옴
+type -a echo ( echo 명령을 순서대로 나열)
+순서 -> echo is a shell builtin echo is /usr/bin/echo echo is /bin/echo(이 3개순서)
+echo hello를 쓰면 첫번쨰인 echo is a shell builtin 실행
+echo is /usr/bin/echo 이걸쓰고 싶으면 /usr/bin/echo hello 0
+which -> (외부 명령이 어디 있는지 알려주는 명령어)
+which ls (ls가 어디있는지) 결과 : /usr/bin/ls
+만약 내부명령이면 ex) which cd -> 아무것도 안나옴
+alias show=cat 띄워쓰기 조심
+디폴트 값은 set +x
+셀 확장 과정을 표시하려면 set -x 
+후 / echo $USER -> 확장과정 보여짐
+&는 background로 실행, 안 쓴 경우는 foreground 실행이라 불림(그냥 sleep 5(주어진 시간만큼 가만히 있다가 끝내는 프로그램))
+변수명 쓸때 띄어쓰기 x 조심
+echo $MyVar(변수이름) -> 변수값출력
+city=Busan   echo "we live in $city" -> we live in Busan
+	    echo 'we live in $city'  -> we live in $city
+/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:.
+: -> 구분자(delemeter)
+. -> 현재 디렉토리(current directory)
+ PATH=/bin (PATH에 경로추가) (만약 unset PATH이면 초기화되서 처음부터 경로다시 추가해줘야함 ls명령 써도 안됨)(경로를 찾을 수 없으니)
+PATH=$PATH:/usr/bin(경로 더 추가)(결과값 echo $PATH -> /bin:/usr/bin)
+앞에다가 경로 추가하려면 PATH=/usr/sbin:$PATH 이런식
+bash -c 'echo $SHELL $HOME $USER'(새로운 셀을 만들어서 커맨드들을 실행하고 빠져나오기)
+ls File[5A] (File5,FileA중에~)
+echo * (전체 목록 다 나옴 파일들)
+echo \*(*라는 문자로 취급) = echo "*" = echo '*'
+연습문제 챕14 14.13. practice: shell variables  (echo Hello $USER)
+
+cat > names.txt (ctrl+d를 누를때까지 입력받고 names.txt에 저장)
+find / ==> (모든 것을 다 찾음)ctrl+z로 멈출 수 있음
+find / > allfiles.txt(find / 로 찾은 것들을 allfiles.txt에 저장)
+$find / > allfiles.txt 2>&1(표준에러도 표준출력으로 보내라!)
+/usr/bin$ ls | more (ls의 표준출력이 more의 표준입력으로 들어감 (more는 입력받은 데이터를 페이지 단위로 보여줌))
+wc ==> word count명령
+ls -l | wc -l  ==>지나간 ls명령어가 wc의 입력으로 들어가서 개수 셈
+< ==> 입력 리다이렉션(오른쪽 파일이 왼쪽 명령의 표준입력으로 들어감)
+sort < names.txt(names.txt파일의 명령을 sort의 입력으로 넣어줌)
+sort < names.txt > sorted-names.txt (sort의 입력으로 넣어준 후 만들어진 걸 sorted-names.txt로 저장)
+wc albums.txt(라인, 단어, 글자수 순서대로 나옴)
+wc -l --> 라인 개수 wc -c --> 글자수 wc -w --> 단어 수
+tee(화면으로도 나오게~)
+cat albums.txt | tr v V ==> 소문자 v를 대문자로 바꾸겠다!
+find / -name '*.sh' 2> /dev/null(전체에서 에러메세지들 없애고 .sh로 끝나는 파일 모두 출력)
+find /data  –name ‘*.odf’ –exec cp {} /backup/ \;()==>(.odf로 끝나는 파일에 대해 -exec 뒤 명령어를 실행해라!)
+time sleep 5 ==> real 5.005s user 0.002s(user cpu 시간) sys 0.000s(시스템모드 cpu 시간)
+gzip allfiles.txt --> 파일 압축
+gzip -d allfiles.txt.gz -->압축 풀기
+gunzip allfiles.txt.gz --> 압출 풀기
+zcat allfiles.txt.gz -->압출 파일을 풀어 화면에 출력
+zcat allfiles.txt.gz > allfiles.txt --> allfiles.txt로 저장 (이 경우는 압축파일과 해제해 저장한 allfiles.txt가 같이 존재)
+$find /data –name “*.txt” --> 루트밑에 data에 있는 모든 디렉토리를 검색하는데 파일의 이름에 .txt로 끝나는 모든파일을 찾음
+$find /data –name *.txt == find/data -name data.txt(만약 data.txt파일이 현재디렉토리에 있었다면 저 *.txt는 data.txt파일로 치환이되버림!)
+
+gedit hello.c & (여기서 &은 백그라운드에서~)
+ctrl+d하면 멈춤 다시 할려면 bg%1
+난 오류 발생 sudo -i 해서 실행!
+
+vi hello.c (i를 누르면 입력모드, esc 후 u를 누르면 취소)
+vi에서 !명령은 강력하게 무언가 실행한다!
+컨트롤+g (현재 몇번 라인인지 알려줌)
+/()       (/ 뒤 내용을 찾음)
+:wq (저장후 종료)
+
+grep '^IT' *.c ==> .c로 끝나는 파일들에서 IT로 시작하는 텍스트 라인을 찾는다
+grep '^IT*' ==>  .c로 끝나는 파일들 I가 나오고 T가 없거나 여러번 나타나는 문자 찾음
+grep ‘p\{2\}’ * ==> p가 2번반복 --> 즉 현재 디렉토리의 모든 파일에서 pp가 포함된 텍스트 라인 찾음
+vi에서는 /ni ==> ni가 들어간 문자 찾는데 names.txt에는 2개가 있으니 'n'키를 눌러 이동가능 
+grep –E ‘o+’ list.txt == grep ‘o\+’ list.txt == egrep 'o+' list.txt
+
+rename 's/txt/TXT/' * ==> 모든 파일에서 파일명이 txt -> TXT로 바꾼다
+rename 's/txt/TXT/g' *  ==> g를 주면 여러번 사용가능 하도록 해줌 2개있어도
+rename 's/./-/' * ==>위험함 그래서 rename 's/\./-/' * ==> .이 문자다!로 해줘야 안전
+
+vi에서 치환
+:1,$s/o/O (첫 줄에서 마지막 줄까지 범위에서 o -> O로 1번 치환)
+:1,$s/o/O/g (전부 바뀜)
+
+vi에서 라인이 불편할때
+원하는 라인을 클릭하고 m을 누른후 아무 알파벳으로 지정(만약 2,3라인을 a b로 지정)
+:'a,'bs/o/O/g --> (2,3라인의 o가 전부 O로 치환)
+sudo su root
+adduser foo==>foo 사용자 만듦 or useradd
+/etc/shadow ==>사용자 암호관리 파일 ( root 권한만 볼 수 있음 )
+foo에서 vi .profile 마지막에 echo 'Hello There!'추가하면 다음에 su - foo(login shell => yes)실행할때 Hello There!출력 챕터6(13page 그림의 xor확인 저런것들 없으면 .profile실행)
+su foo(login shell => no)
+
+나는 sudo -i!
+
+sudo apt full-upgrade(=dist-upgrade)
+sudo apt install vsftpd(파일을 주고받을 때 사용하는 프로그램)
+sudo vi /etc/vsftpd.conf
+
+파이어폭스에서 ftp://localhost도 가능
+
+sudo apt install gftp
+gftp &   ==> (localhost , id, pw)
+
+BIOS POST (Power On Self Test)
+GRUB 실행(BOOT LOADER)
+KENERL 실행(OS)(SYSTEMD 프로세스 => 최초의 PROCESS) 
+
+ls -l *
+ll
+foo 사용자에서 할 때는 cd ~hjsong/oss ==> hjsong으로~
+id jse(속한 그룹들)
+
+ chmod
+g => group 
+u => user 
+a => all(user,group,other)
+r,w,x =>읽기,쓰기,실행
+
+umask(명령어)
+0022(첫번째 0은 8진수 두번째 0은 user rwx다 써라 첫번째 2 group ==>w 즉,w제외하고~, 두번째2 other도 w제외하고)
+==> u=rwx g=rx o=rx
+umask -S(직관적인 명령어)
+umask 0000(모두 허가)
+원래 touch로 만든거는(rw,rw,rw로~(기본적인 값))
+폴더는(rwx,rwx,rwx가 기본적인 값)
+mkdir -m 775 dir2 ==>(rwx,rwx,rx)
+
+실습~ (chap 8 pdf)
+
+chapter 9
+vi myscript
+i(입력)
+esc후 :wq 저장후 종료
+chmod +x myscript(실행권한 줌)
+ . ./myscript(앞에 .은 실행,뒤에 .은 현재 디렉토리)
+ exit 0 (무슨 의미?)
+ 실행하는 4가지 방법 차이점 !!!
+
+ echo $PATH
+ PATH=$PATH:/home/jse/oss(이렇게 PATH경로 추가해주면 어느 위치에 있어도 그냥 myscript(파일명)입력시 프로그램 실행 )
+
+echo 2 * 3 > 5 is vaild inequality(5라는 파일 생기고 5파일 내용을 보면 *==> 현재 파일 내에 있는 모든 디렉토리로 해석됨,>는 5라는 파일에 저장해라)
+그래서 따옴표가 중요하다!
+작은 따옴표는 그 안에 부분을 정말 해석하지 않음
+큰 따옴표를 쓰는 경우는 일부기능에 대해서 해석함
+
+echo Hatter\'s tea party(백슬래시를 이용해 Quoting)
+echo “alice: $@”
+echo “$0: $1 $2 $3 $4”
+echo “$# arguments”
+
+./alice in wonderland 
+
+==>(in => $1 wonderland =>$2)
+alice: in wonderland
+./alice: in wonderland
+2 arguments
+
+ function alice
+ {
+> echo "func alice: $@"
+> echo "func $0: $1 $2 $3 $4"
+> echo "$# arguments"
+> }
+
+alice
+func alice:
+func -bash:
+0 arguments
+
+함수에서의 positional parameters
+여기서 in function으로 나옴!!  둘다! 조심
+만약 함수안에 있는 var1이 local var1 이면 두번쨰 var1출력에서는 outside function이 나옴
+
+wget http://db.pknu.ac.kr/utiㅣs/albums.txt
+정렬
+sort albums.txt(숫자가아닌 글자3으로 인식)
+sort -n albums.txt(작은숫자부터)
+sort -nr albums.txt(큰숫자부터)
+sort -nr albums.txt | head -20
+chmod +x highest 
+
+${path##/*/} (/부터 아무거나 다 /까지 젤 긴부분 /home/cam/book/ 까지 제외하고 남은부분 리턴)
+/*/ => /아무거나/
+.*  => .으로끝나는 아무거나
+$ echo -e ${PATH//:/'\n'} (:패턴을 '\n'으로 치환)
+-e => '\n'을 해석  
+
+file=$(<alice) => alice파일내용을 변수값으로 넣어줌
+vi $(grep -i 'command substitution' ch*) => ch로 시작하는 파일들 중에서 command substitution이라는 문자열이 들어가있는 파일이름을 다 찾는 명령어를 vi로 ~
+
+cut -f1 -d\| albums-all.txt
+-f1 => 첫번째 열만 출력
+-d => 구분자가 무엇인지
+\| => |를 그냥 넣어주면 쉘이 명령들간에 입출력을 연결한 파이프로 인식할수도 있으니 백슬래쉬를 
+
+if grep $word1 $filename =>(word1이 filename에 있으면 true리턴)
+
+실습 예제3
+file.jpg -> file.pnm -> file.jpg
+
+eog pknu_logo.gif (그림 보여줌)
+
+giftopnm pknu_logo.gif > pknu_logo.pnm
+pnmtojpeg pknu_logo.pnm > pknu_logo.jpg
+rm *.jpg (.jpg 다 지우기)
+
+리눅스에서 ( )는 ()안 명령을 subshell에서 실행하라는 뜻 그러므로 \붙여주기
+
+seq 1 10 => 1,2,3,4,5,6,7,8,9,10 출력
+seq 1 2 10 (2씩 더하기 ==> 1 3 5 7 9 출력)
+for f in * ==> 현재 디렉토리에 있는 모든파일명 반복
+
+항상 chmod +x img-trans-all (실행권한)
+[in list] => 생략하면 인자로 들어온거 사용!
+
+ select m in noodles rice quit
+ > do
+> echo $m
+> done
+결과
+1) noodles
+2) rice
+3) quit
+#? --> 어떤걸 선택할지 묻는거! 2선택시 rice 계속 물음
+
+select m in noodles rice quit; do echo You selected $m;if [ $m = quit ];then exit 0;fi; done
+quit선택하면 나가지기!
+
+path=$PATH:
+while [ $path ]
+do
+echo ${path%%:*}
+path=${path#*:}
+done
+
+
+#fe.sh
+여러개 인자!
+for filename in "$@"
+do
+        if [ -a "$filename" ]
+        then
+                echo "File '$1' exists in current directory"
+        else
+                echo "File '$1' does not exist in current directory"
+        fi
+done
+
+Chapter 10
+-c : 컴파일만 수행( hello.c -> hello.o)
+-O : 코드 최적화 수준 지정(Optimize)
+-I(대문자 아이) : 표준 헤더파일 이외의 헤더파일들이 있는 디렉토리들을 지정
+-l(소문자 엘)   : 링크할 라이브러리를 지정
+
+lib(라이브러리파일) : object collection
+
+gcc -o test test.c $(pkg-config --clfags --libs library) => 자동으로 찾아줌
+
+sudo apt install gcc
+
+vi hello.c로 작성
+#incldue <stdio.h>
+
+int main(int argc, char* argv[])
+{
+        printf("Hello World!\n")
+
+
+        return 0;
+}
+그리고 gcc hello.c
+=> a.out이 생성됨
+./a.out (실행)
+
+a.out이라는 이름이 싫으면 gcc -o hello hello.c => hello라는 파일만들어짐
+
+PATH=$PATH:.  =>PATH경로에 .추가(현재디렉토리 경로도 추가) 이렇게하면 그냥 a.out해도 실행됨(근데 때로는 실수할수도있음)
+
+gcc -c hello.c => hello.o(오브젝트파일)만들어줌
+gcc -o hello hello.o(hello라는 이름으로 만들어줌 오브젝트 파일을 라이브러리랑 연결시켜서)
+
+gcc -g -o count10 count10.c (-g => 디버거 옵션)
+gdb count10 
+소문자 엘(l) 뭘 디버깅하는지 리스트보여줌
+b 5 (break point 5번째 문장부터)
+r(실행 run)
+n(이 라인을 통쨰로 실행 next)
+c(countinue)
+p i(print i)
+q(quit)
+
+ddd count10 디버그도 사용가능
+
+wget http://db.pknu.ac.kr/utils/calc.tgz --no-check-certificate
+tar xvf calc.tgz(압출풀기?)
+만들어진 calc파일에서 make명령어(sudo apt install make)
+알아서 다 만들어짐(컴파일~)
+2 * 3 -5 계산
+
+후위 표기식
+30 -5 * 7 -> 30 5 - 7 * 
+
+token.c 파일에서 2 * 3 -1 -> 2 3* 1- 로 변경하는 역할
+stack.c 스택과 관련된일
+calc.c 메인함수와 관련된일
+eval.c 스택과 입력식을 이용한 계산
+
+정의는 항상 선언을 포함한다
+
+extern int i;는 i를 만드는게 아니라 어딘가 있는 i를 쓰는것 즉 선언!
+
+만약 typedef int Boolean; 이런문장이 중복된 헤더파일에 포함되면 오류발생
+#ifndef => def안되어있으면 실행되라!(밑부분을)
+#endif => 끝
+
+이렇게 해놓으면 두번째 똑같은 ifndef를 만났을때 중복이 안됨!
+
+최근 프로그램들은 #pragma once로 해결가능
+
+-lm ( math 라이브러리 링크 )
+
+의존성
+calc: calc.o eval.o stack.o token.o (.o파일들이 바꼈으면 calc파일을 다시 만들어야한다! 밑방법으로!)
+calc.o: calc.c eval.h(위와 마찬가지)
+......
+..... \t
+make clean (Makefile안에서 해당되는 타겟(clean) 실행)
+
+grep 'parse' * =>저 함수가 어디서 정의됐는지 확인가능
+더 편한것은 CTAGS
+ctags -r
+:set tags=./tags (vi에서)
+tj (함수)parsePostfix(아니면 Ctrl+])
+
+
+
+
