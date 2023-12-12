@@ -1,0 +1,176 @@
+CH3-p1 Transport Layer
+transport 계층 프로토콜은 서로 다른 호스트 상에서 동작하는 응용 프로세스들 사이에 logical communication을 제공
+종단 시스템에서 수행됨 sender side => messages를 segments로 나누고 네트워크 계층으로 전달 / receiver side => segments를 메세지로 재조립하고 앱계층으로 전달 
+
+인터넷 애플리케이션에 사용 가능한 두 가지 전송 프로토콜 => TCP, UDP
+
+network layer => host사이 논리적인 통신
+transport layer => 어플리케이션 프로세스들 사이의 논리적 통신
+종단 시스템 내에서, transport 프로토콜은 응용 프로세스와 네트워크 경계까지 메세지를 운반하고, 역으로 네트워크 계층에서 응용프로세스로 메세지들을 운반
+중간 라우터들은 transport 계층이 응용 메세지에 추가한 어떤 정보도 인식하지 않음
+
+transport layer Actions => Sender : 애플리케이션 계층 메세지가 전달 -> 세그먼트 헤더 필드 값을 결정 -> 세그먼트를 생성하여 IP에 세그먼트를 전달
+receiver : IP 검사에서 세그먼트를 수신 -> 헤더 값을 추출 -> 애플리케이션 계층 메세지를 추출 -> 소켓을 통해 애플리케이션까지 메세지를 역다중화
+
+TCP => Transmission Control Protocol / 신뢰성, 순차 전달, 혼잡 제어, 흐름 제어, 연결 설정
+UDP => User Datagram Protocol / 신뢰성x, 순서가 없는 전달, 최선의 노력으로 전송(전송과정에서의 문제는 책임x)
+TCP,UDP => 지연,대역폭 보장
+
+Multiplexing/demultiplexing
+트랜스포트 계층 다중화와 역다중화 => 호스트 대 호스트 전달을 프로세스 대 프로세스 전달로 확장
+multiplexing at sender => 여러 소켓의 데이터 처리, 전송 헤더 추가
+demultiplexing at receiver => 헤더 정보를 사용하여 수신된 세그먼트를 올바른 소켓으로 전달
+
+demultiplexing works
+호스트는 IP 데이터그램을 수신 => 각 데이터그램에는 source IP 주소, destination IP 주소가 있음 / 각 데이터그램은 1개의 전송 계층 세그먼트를 전달
+/ 각 세그먼트는 source,destination 포트 번호가 있음
+호스트는 IP 주소와 포트 번호를 사용하여 세그먼트를 적절한 소켓으로 보냄 (demultiplexing=>IP 주소와 포트 번호로!)
+
+Connectionless(UDP) demultiplexing => 세그먼트를 받으면 head에 있는 목적지 포트번호를 보고 전달
+
+Connection-oriented demux => 목적지 포트넘버 만으로는 소켓 식별x 
+4-tuple로 구분되는 TCP 소켓 => source IP address, source port number, dest IP address, dest port number(이 4가지를 조절하여 socket 식별)
+서버 호스트는 많은 동시 TCP소켓을 지원할 수 있음 / 웹 서버는 연결하는 클라이언트마다 서로 다른 소켓을 가지고 있음 / 비지속 HTTP는 각 요청마다 다른 소켓을 갖음
+
+
+
+
+CH3-p2-1
+Connection less => UDP sender,receiver 사이의 handshaking x, 각 UDP 세그먼트는 다른 세그먼트와 독립적으로 처리
+UDP use => 종종 스트리밍 멀티미디어 앱에 사용됨 / 손실 허용, 속도에 민감 / DNS, SNMP(네트워크관리 프로토콜)
+UDP의 신뢰성을 어떻게 보장? => 어플리케이션이 보장해줘야함
+UDP => 연결 설정x(지연 추가 발생 가능), 구현이 간단, 헤더가 작음, 혼잡제어 x => 최대속도로 보냄(TCP는 혼잡많으면 전송속도 떨어짐)
+
+UDP : Transport layer Actions 
+sender: 애플리케이션 계층 메세지가 전달 -> UDP 세그먼트 헤더 필드 값을 결정 -> UDP 세그먼트를 생성하고 세그먼트를 IP로 전달
+receiver: IP로부터 세그먼트 수신 -> UDP checksum 헤더 값을 확인 -> 애플리케이션 계층 메세지 추출 -> 소켓을 통해 메세지를 애플리케이션까지 역다중화
+
+UDP checksum => 비트오류 검출하기위한 코드값
+수신자 checksum 과 sender checksum이 다르면 오류가 있다!(오류발생 위치는 모름)
+sender : UDP 세그먼트의 내용을 16비트 정수 시퀀스로 처리 
+checksum : 세그먼트 내용의 추가(1의 보수 함계)
+receiver : 수신된 세그먼트의 checksum 계산 , 같은지 확인
+ex> 1110011001100110 + 1101010101010101 -> 1(carry)1011101110111011(발생한 carry 더해줌) -> sum : 1011101110111100 그후 1의보수값해서 뒤집어줌
+만약 짝수개의 비트가 오류발생시 합은 같으므로 감지 못 할 가능성이 큼
+UDP에서 오류 검사 이유 => 많은 링크 계층 프로토콜이 오류 검사를 제공하지만, 소스와 목적지사이의 모든 링크들이 오류 검사를 제공한다는 보장이 없음
+UDP는 오류 검사를 제공하지만 오류를 회복하기 위한 어떤 일도 하지 않음
+
+Principles of reliable data transfer
+신뢰할 수 있는 데이터 전송 프로토콜의 복잡성은 신뢰할 수 없는 채널의 특성에 따라 달라진다. (network의 신뢰성x 특성때문에 transport의 복잡성 커짐)
+메세지를 통해 전달 되지 않는 한 sender,receiver는 서로의 "상태"를 모른다.
+서비스 추상화를 구현하는 것은 신뢰적인 데이터 전송프로토콜의 의무. / 비신뢰적인 채널(network)의 특성이 rdt의 복잡도를 결정
+
+Reliable data transfer protocol (rdt): interfaces
+rdt_send() => 어플리케이션으로 부터 호출받음 / rdt_rcv() => 패킷을 수신 / deliver_data() => 상위계층으로 데이터 전달 / udt_send() => 처리한 데이터를 하위계층으로 전달
+
+Reliable data transfer: getting started
+신뢰적인 데이터 전송 프로토콜(rdt)의 송신측과 수신측을 점진적으로 개발
+단방향 데이터 전송만을 고려(sender->receiver)(제어 정보는 양방향으로 전송됨)
+송신측과 수신측을 기술하기 위해 유한상태기계(FSM)를 사용
+
+Rdt1.0: reliable transfer over a reliable channel
+완벽하게 안정적인 채널(no bit errors, no loss of packet)(하위 채널이 신뢰성이 있을경우(비현실적))
+sender,receiver를 위한 별도의 FSM: 
+sender는 기본 채널로 데이터를 보냄(상태 하나=> 상위계층으로부터 데이터 올때까지 대기) 
+receiver는 기본 채널에서 데이터를 읽음(상태 하나=> 하위계층으로부터 데이터올때까지 대기)
+receiver는 sender에 어떤 피드백도 제공할 필요가 없음(완전히 신뢰적인 채널 상에서 동작하기 때문)
+
+Rdt2.0 => 비트오류는 발생 할 수 있다(loss오류는 x(목적지에는 반드시 도착))
+
+
+
+
+CH3-p2-2
+Rdt2.0
+수신자는 pkt가 ok를 수신했음을 발신자에게 명시적으로 ACks로 알림 / 수신자는 pkt가 오류발생했다고 발신자에게 명시적으로 NAcks로 알림
+sender는 NAK신호를 받으면 재전송
+Rdt2.0의 새로운 매커니즘 => 오류 감지, receiver 피드백(ACK,NACK) sender에게
+stop and wait protocol => sender는 하나의 패킷을 보내고 receiver의 응답을 기다림
+sender의 FSM => 1.기다리는 상태 2.제어 신호를 기다리는 상태 / 패킷을 받았는데 && ACK인경우 => 다음 패킷보냄 / NAK인경우 => 패킷 재전송
+프로토콜이 있기 때문에 서로의 상태를 알수있음!
+receiver의 FSM => 상태 하나 기다리는 상태
+
+만약 제어정보(ACK/NACK)가 손상되었을때는?
+1.제어정보에 대한 제어정보는 => 근본적인 해결책 x
+2.비트 오류를 복구하기 위해 충분한 체크섬비트를 추가(error correcting code) => 올바르게 수신된 pkt가 재전송될 수 있다. 해결x
+3.그냥 무조건 재전송을 하자! =>(수신자입장에서 중복문제만 해결하면됨(sequence number 추가(1bit)))
+
+Rdt2.1 위 3번 무조건 재전송! 방식
+sender => 4개의 상태 receiver 2개의 상태
+
+Rdt2.2: a NAK-free protocol
+2.1에서 NAK 대신에 receiver는 정상적으로 수신된 마지막 패킷에 대한 ACK를 전송(sequence number를 반드시 명시적으로 포함해야 함)
+sender측에서 중복된 ACK는 NAK와 같은 역할을 한다 : sender는 현재 패킷을 재전송
+sender의 FSM => 3개의 상태
+
+Rdt3.0: channels with errors and loss (단점: 성능의 문제)
+receiver로 부터 반응x => sender는 loss되었다고 판단 => 재전송
+판단하는 법 => countdown timer
+만약 ACK신호가 loss됐을 땐? (sender는 timeout => 재전송 / receiver는 중복으로받음(sequence number로 해결했음))
+sender의 FSM => 4개의 상태
+
+Rdt3.0 in Action(alternating bit protocol(stop and wait protocol))
+
+Rdt3.0의 성능 
+ex> 1Gbps link, 15ms e-e prop. delay(RTT ~ 30ms), 1KByte packet
+전송지연 = 패킷길이/링크대역폭  => transmit = L(packet length in bits)/R(transmission rate,bps) = 8(kbit/pkt)/10**9b/sec = 8microsec
+t=RTT/2 +L/R = 15.008ms에 전송측에서 수신측에 패킷 도착 / 송신측에 ACK 패킷은 t = RTT + L/R = 30.008ms에 다시 나타남
+/ 실제 송신자는 30.008ms(보내고 ack신호 받을때 까지 시간) 시간동안 단지 0.008ms 시간동안만 데이터 전송
+U(sender)(전체시간에서 작업한시간의 비율) = (L/R)/(RTT+L/R) = .008/30.008 = 0.00027
+30msec 마다 1KB pkt -> 1Gbps 링크를 통한 처리량 33kB/초
+
+
+
+
+
+CH3-p3-1
+Pipelined protocols
+Pipelining: 여러 개의 "in-flight" pkt를 허용 / sequence number의 범위를 증가 => 많은 ~ 보내기 가능
+Two protocol => go-Back-N,selective repeat
+
+Pipelining: increased utilization
+U(sender)=(3*L/R)/(RTT+L/R)=.024/30.008 = 0.0008
+
+Go-back-N: big picture:
+sender는 파이프라인에 최대 N개의 ack가 오지 않은 패킷을 가질 수 있다
+receiver는 오직 cumulative acks 만 보낸다.(간격이 있으면 패킷을 확인 x)
+sender는 ack가 오지않은 가장 오래된 패킷에 대한 타이머를 가지고 있음 만약 타이머가 만료되면 다시 전송
+
+Selective Repeat:big pic:
+sender는 파이프라인에 최대 N개의 ack가 오지 않은 패킷을 가질 수 있다.
+rcvr sends individual ack for
+수신자는 각각의 패킷을 위해 individual ack를 보낸다
+sender는 ack가 오지 않은 각 패킷에 대해 타이머를 유지하고 타이머가 만료되면 ack가 오지 않은 패킷만 재전송
+
+Go-Back-N
+sender
+"window" of up to N(사이즈가 N인 윈도우 정의),연속적인 ack x 패킷 허용
+패킷 sequence number 분류 green => ack가 옴 / yellow => 보냈는데 아직 ack x / blue => 사용할수있지만 아직 전송x / white => 사용 x
+window size = yellow + blue
+yellow 패킷이 ack가 도착하면 green으로 바뀜 => window 이동 / yellow 첫 패킷이 timeout발생하면 yellow 전부 재전송
+중간 yellow가 ACK되면 앞 yellow들도 전부 ACK처리 / 순서 번호의 공간 => 0~2^k-1
+ACK: "Cumulative Ack" 포함
+sender FSM => 상태 하나 / nextseqnum < base+N => 사용할수있는 sequence number판단(사용할수있는게 없으면 못 보냄)
+receiver FSM => 상태 하나 / ACK-only: 순서대로 가장 높은 순서 번호를 가진 올바르게 수신된 pkt에 대해 항상 ACK를 보냄(중복 ACK생성할수있음, expectedseqnum만 기억)
+out-of-order-pkt(순서에 어긋나게 온 것): 폐기 -> receiver 버퍼링 x! 가장 높은 순서의 seq #을 갖는 re-ACK pkt
+가장 큰 단점 => timeout 발생시 그 패킷부터 이후패킷까지 전부 재전송!
+stop-and-wait 프로토콜의 채널 이용률 문제는 개선
+
+Selective Repeat(선택적 반복)
+receiver는 올바르게 수신된 모든 pkt를 개별적으로 확인 / 최종적으로 상위 계층으로 전달될 수 있도록 필요에 따라 패킷을 버퍼링한다.
+sender는 ACK가 수신되지 않은 패킷만 다시 보냄(타이머 존재) / 사용할수있는 sequence number 있으면 패킷보냄
+receiver - 순서에 어긋난게 도착 => ack는 보내겠지만 basepoint는 안옮김 / 앞에 처리된게 또 옮 => ack만 보내줌
+sender window - N개의 연속된 시퀀스 번호 / 전송되고 ACK되지 않은 pkt의 시퀀스 번호를 다시 제한
+
+Selective repeat: dilemma : 드물지만 해결 못하는 시나리오
+sequence number 크기와 창 크기 사이 관계 : 윈도우 크기는 SR 프로토콜에 대한 순서번호 공간 크기의 절반보다 작거나 같아야함
+seq #'s:0,1,2,3 ,window size=3 x 2가 되어야함
+패킷번호가 0123012 인데 pkt0: 123 pkt1: 230 pkt2:301 인데 셋다 loss되서 pkt0을 재전송하는데 0이 새로운 0인지 과거의 0인지 구분x
+
+
+
+
+CH-p3-2
+
+
+
