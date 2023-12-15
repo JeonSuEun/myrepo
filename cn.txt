@@ -1,0 +1,543 @@
+CH3-p1 Transport Layer
+transport 계층 프로토콜은 서로 다른 호스트 상에서 동작하는 응용 프로세스들 사이에 logical communication을 제공
+종단 시스템에서 수행됨 sender side => messages를 segments로 나누고 네트워크 계층으로 전달 / receiver side => segments를 메세지로 재조립하고 앱계층으로 전달 
+
+인터넷 애플리케이션에 사용 가능한 두 가지 전송 프로토콜 => TCP, UDP
+
+network layer => host사이 논리적인 통신
+transport layer => 어플리케이션 프로세스들 사이의 논리적 통신
+종단 시스템 내에서, transport 프로토콜은 응용 프로세스와 네트워크 경계까지 메세지를 운반하고, 역으로 네트워크 계층에서 응용프로세스로 메세지들을 운반
+중간 라우터들은 transport 계층이 응용 메세지에 추가한 어떤 정보도 인식하지 않음
+
+transport layer Actions => Sender : 애플리케이션 계층 메세지가 전달 -> 세그먼트 헤더 필드 값을 결정 -> 세그먼트를 생성하여 IP에 세그먼트를 전달
+receiver : IP 검사에서 세그먼트를 수신 -> 헤더 값을 추출 -> 애플리케이션 계층 메세지를 추출 -> 소켓을 통해 애플리케이션까지 메세지를 역다중화
+
+TCP => Transmission Control Protocol / 신뢰성, 순차 전달, 혼잡 제어, 흐름 제어, 연결 설정
+UDP => User Datagram Protocol / 신뢰성x, 순서가 없는 전달, 최선의 노력으로 전송(전송과정에서의 문제는 책임x)
+TCP,UDP => 지연,대역폭 보장
+
+Multiplexing/demultiplexing
+트랜스포트 계층 다중화와 역다중화 => 호스트 대 호스트 전달을 프로세스 대 프로세스 전달로 확장
+multiplexing at sender => 여러 소켓의 데이터 처리, 전송 헤더 추가
+demultiplexing at receiver => 헤더 정보를 사용하여 수신된 세그먼트를 올바른 소켓으로 전달
+
+demultiplexing works
+호스트는 IP 데이터그램을 수신 => 각 데이터그램에는 source IP 주소, destination IP 주소가 있음 / 각 데이터그램은 1개의 전송 계층 세그먼트를 전달
+/ 각 세그먼트는 source,destination 포트 번호가 있음
+호스트는 IP 주소와 포트 번호를 사용하여 세그먼트를 적절한 소켓으로 보냄 (demultiplexing=>IP 주소와 포트 번호로!)
+
+Connectionless(UDP) demultiplexing => 세그먼트를 받으면 head에 있는 목적지 포트번호를 보고 전달
+
+Connection-oriented demux => 목적지 포트넘버 만으로는 소켓 식별x 
+4-tuple로 구분되는 TCP 소켓 => source IP address, source port number, dest IP address, dest port number(이 4가지를 조절하여 socket 식별)
+서버 호스트는 많은 동시 TCP소켓을 지원할 수 있음 / 웹 서버는 연결하는 클라이언트마다 서로 다른 소켓을 가지고 있음 / 비지속 HTTP는 각 요청마다 다른 소켓을 갖음
+
+
+
+
+
+CH3-p2-1
+Connection less => UDP sender,receiver 사이의 handshaking x, 각 UDP 세그먼트는 다른 세그먼트와 독립적으로 처리
+UDP use => 종종 스트리밍 멀티미디어 앱에 사용됨 / 손실 허용, 속도에 민감 / DNS, SNMP(네트워크관리 프로토콜)
+UDP의 신뢰성을 어떻게 보장? => 어플리케이션이 보장해줘야함
+UDP => 연결 설정x(지연 추가 발생 가능), 구현이 간단, 헤더가 작음, 혼잡제어 x => 최대속도로 보냄(TCP는 혼잡많으면 전송속도 떨어짐)
+
+UDP : Transport layer Actions 
+sender: 애플리케이션 계층 메세지가 전달 -> UDP 세그먼트 헤더 필드 값을 결정 -> UDP 세그먼트를 생성하고 세그먼트를 IP로 전달
+receiver: IP로부터 세그먼트 수신 -> UDP checksum 헤더 값을 확인 -> 애플리케이션 계층 메세지 추출 -> 소켓을 통해 메세지를 애플리케이션까지 역다중화
+
+UDP checksum => 비트오류 검출하기위한 코드값
+수신자 checksum 과 sender checksum이 다르면 오류가 있다!(오류발생 위치는 모름)
+sender : UDP 세그먼트의 내용을 16비트 정수 시퀀스로 처리 
+checksum : 세그먼트 내용의 추가(1의 보수 함계)
+receiver : 수신된 세그먼트의 checksum 계산 , 같은지 확인
+ex> 1110011001100110 + 1101010101010101 -> 1(carry)1011101110111011(발생한 carry 더해줌) -> sum : 1011101110111100 그후 1의보수값해서 뒤집어줌
+만약 짝수개의 비트가 오류발생시 합은 같으므로 감지 못 할 가능성이 큼
+UDP에서 오류 검사 이유 => 많은 링크 계층 프로토콜이 오류 검사를 제공하지만, 소스와 목적지사이의 모든 링크들이 오류 검사를 제공한다는 보장이 없음
+UDP는 오류 검사를 제공하지만 오류를 회복하기 위한 어떤 일도 하지 않음
+
+Principles of reliable data transfer
+신뢰할 수 있는 데이터 전송 프로토콜의 복잡성은 신뢰할 수 없는 채널의 특성에 따라 달라진다. (network의 신뢰성x 특성때문에 transport의 복잡성 커짐)
+메세지를 통해 전달 되지 않는 한 sender,receiver는 서로의 "상태"를 모른다.
+서비스 추상화를 구현하는 것은 신뢰적인 데이터 전송프로토콜의 의무. / 비신뢰적인 채널(network)의 특성이 rdt의 복잡도를 결정
+
+Reliable data transfer protocol (rdt): interfaces
+rdt_send() => 어플리케이션으로 부터 호출받음 / rdt_rcv() => 패킷을 수신 / deliver_data() => 상위계층으로 데이터 전달 / udt_send() => 처리한 데이터를 하위계층으로 전달
+
+Reliable data transfer: getting started
+신뢰적인 데이터 전송 프로토콜(rdt)의 송신측과 수신측을 점진적으로 개발
+단방향 데이터 전송만을 고려(sender->receiver)(제어 정보는 양방향으로 전송됨)
+송신측과 수신측을 기술하기 위해 유한상태기계(FSM)를 사용
+
+Rdt1.0: reliable transfer over a reliable channel
+완벽하게 안정적인 채널(no bit errors, no loss of packet)(하위 채널이 신뢰성이 있을경우(비현실적))
+sender,receiver를 위한 별도의 FSM: 
+sender는 기본 채널로 데이터를 보냄(상태 하나=> 상위계층으로부터 데이터 올때까지 대기) 
+receiver는 기본 채널에서 데이터를 읽음(상태 하나=> 하위계층으로부터 데이터올때까지 대기)
+receiver는 sender에 어떤 피드백도 제공할 필요가 없음(완전히 신뢰적인 채널 상에서 동작하기 때문)
+
+Rdt2.0 => 비트오류는 발생 할 수 있다(loss오류는 x(목적지에는 반드시 도착))
+
+
+
+
+CH3-p2-2
+Rdt2.0
+수신자는 pkt가 ok를 수신했음을 발신자에게 명시적으로 ACks로 알림 / 수신자는 pkt가 오류발생했다고 발신자에게 명시적으로 NAcks로 알림
+sender는 NAK신호를 받으면 재전송
+Rdt2.0의 새로운 매커니즘 => 오류 감지, receiver 피드백(ACK,NACK) sender에게
+stop and wait protocol => sender는 하나의 패킷을 보내고 receiver의 응답을 기다림
+sender의 FSM => 1.기다리는 상태 2.제어 신호를 기다리는 상태 / 패킷을 받았는데 && ACK인경우 => 다음 패킷보냄 / NAK인경우 => 패킷 재전송
+프로토콜이 있기 때문에 서로의 상태를 알수있음!
+receiver의 FSM => 상태 하나 기다리는 상태
+
+만약 제어정보(ACK/NACK)가 손상되었을때는?
+1.제어정보에 대한 제어정보는 => 근본적인 해결책 x
+2.비트 오류를 복구하기 위해 충분한 체크섬비트를 추가(error correcting code) => 올바르게 수신된 pkt가 재전송될 수 있다. 해결x
+3.그냥 무조건 재전송을 하자! =>(수신자입장에서 중복문제만 해결하면됨(sequence number 추가(1bit)))
+
+Rdt2.1 위 3번 무조건 재전송! 방식
+sender => 4개의 상태 receiver 2개의 상태
+
+Rdt2.2: a NAK-free protocol
+2.1에서 NAK 대신에 receiver는 정상적으로 수신된 마지막 패킷에 대한 ACK를 전송(sequence number를 반드시 명시적으로 포함해야 함)
+sender측에서 중복된 ACK는 NAK와 같은 역할을 한다 : sender는 현재 패킷을 재전송
+sender의 FSM => 3개의 상태
+
+Rdt3.0: channels with errors and loss (단점: 성능의 문제)
+receiver로 부터 반응x => sender는 loss되었다고 판단 => 재전송
+판단하는 법 => countdown timer
+만약 ACK신호가 loss됐을 땐? (sender는 timeout => 재전송 / receiver는 중복으로받음(sequence number로 해결했음))
+sender의 FSM => 4개의 상태
+
+Rdt3.0 in Action(alternating bit protocol(stop and wait protocol))
+
+Rdt3.0의 성능 
+ex> 1Gbps link, 15ms e-e prop. delay(RTT ~ 30ms), 1KByte packet
+전송지연 = 패킷길이/링크대역폭  => transmit = L(packet length in bits)/R(transmission rate,bps) = 8(kbit/pkt)/10**9b/sec = 8microsec
+t=RTT/2 +L/R = 15.008ms에 전송측에서 수신측에 패킷 도착 / 송신측에 ACK 패킷은 t = RTT + L/R = 30.008ms에 다시 나타남
+/ 실제 송신자는 30.008ms(보내고 ack신호 받을때 까지 시간) 시간동안 단지 0.008ms 시간동안만 데이터 전송
+U(sender)(전체시간에서 작업한시간의 비율) = (L/R)/(RTT+L/R) = .008/30.008 = 0.00027
+30msec 마다 1KB pkt -> 1Gbps 링크를 통한 처리량 33kB/초
+
+
+
+
+
+CH3-p3-1
+Pipelined protocols
+Pipelining: 여러 개의 "in-flight" pkt를 허용 / sequence number의 범위를 증가 => 많은 ~ 보내기 가능
+Two protocol => go-Back-N,selective repeat
+
+Pipelining: increased utilization
+U(sender)=(3*L/R)/(RTT+L/R)=.024/30.008 = 0.0008
+
+Go-back-N: big picture:
+sender는 파이프라인에 최대 N개의 ack가 오지 않은 패킷을 가질 수 있다
+receiver는 오직 cumulative acks 만 보낸다.(간격이 있으면 패킷을 확인 x)
+sender는 ack가 오지않은 가장 오래된 패킷에 대한 타이머를 가지고 있음 만약 타이머가 만료되면 다시 전송
+
+Selective Repeat:big pic:
+sender는 파이프라인에 최대 N개의 ack가 오지 않은 패킷을 가질 수 있다.
+rcvr sends individual ack for
+수신자는 각각의 패킷을 위해 individual ack를 보낸다
+sender는 ack가 오지 않은 각 패킷에 대해 타이머를 유지하고 타이머가 만료되면 ack가 오지 않은 패킷만 재전송
+
+Go-Back-N
+sender
+"window" of up to N(사이즈가 N인 윈도우 정의),연속적인 ack x 패킷 허용
+패킷 sequence number 분류 green => ack가 옴 / yellow => 보냈는데 아직 ack x / blue => 사용할수있지만 아직 전송x / white => 사용 x
+window size = yellow + blue
+yellow 패킷이 ack가 도착하면 green으로 바뀜 => window 이동 / yellow 첫 패킷이 timeout발생하면 yellow 전부 재전송
+중간 yellow가 ACK되면 앞 yellow들도 전부 ACK처리 / 순서 번호의 공간 => 0~2^k-1
+ACK: "Cumulative Ack" 포함
+sender FSM => 상태 하나 / nextseqnum < base+N => 사용할수있는 sequence number판단(사용할수있는게 없으면 못 보냄)
+receiver FSM => 상태 하나 / ACK-only: 순서대로 가장 높은 순서 번호를 가진 올바르게 수신된 pkt에 대해 항상 ACK를 보냄(중복 ACK생성할수있음, expectedseqnum만 기억)
+out-of-order-pkt(순서에 어긋나게 온 것): 폐기 -> receiver 버퍼링 x! 가장 높은 순서의 seq #을 갖는 re-ACK pkt
+가장 큰 단점 => timeout 발생시 그 패킷부터 이후패킷까지 전부 재전송!
+stop-and-wait 프로토콜의 채널 이용률 문제는 개선
+
+Selective Repeat(선택적 반복)
+receiver는 올바르게 수신된 모든 pkt를 개별적으로 확인 / 최종적으로 상위 계층으로 전달될 수 있도록 필요에 따라 패킷을 버퍼링한다.
+sender는 ACK가 수신되지 않은 패킷만 다시 보냄(타이머 존재) / 사용할수있는 sequence number 있으면 패킷보냄
+receiver - 순서에 어긋난게 도착 => ack는 보내겠지만 basepoint는 안옮김 / 앞에 처리된게 또 옮 => ack만 보내줌
+sender window - N개의 연속된 시퀀스 번호 / 전송되고 ACK되지 않은 pkt의 시퀀스 번호를 다시 제한
+
+Selective repeat: dilemma : 드물지만 해결 못하는 시나리오
+sequence number 크기와 창 크기 사이 관계 : 윈도우 크기는 SR 프로토콜에 대한 순서번호 공간 크기의 절반보다 작거나 같아야함
+seq #'s:0,1,2,3 ,window size=3 x 2가 되어야함
+패킷번호가 0123012 인데 pkt0: 123 pkt1: 230 pkt2:301 인데 셋다 loss되서 pkt0을 재전송하는데 0이 새로운 0인지 과거의 0인지 구분x
+
+
+
+
+CH3-p3-2
+TCP Overview
+Point-to-point => 하나의 sender, 하나의 receiver
+reliable,in-order byte stream => no "message boundaries"
+pipelined => TCP 혼잡,흐름제어 set window size
+cumulative ACKS
+full duplex data => 양방향 전송 / MSS => 하나의 segment로 보낼수있는 최대 크기
+connection-oriented => handshaking
+flow controlled, congestion controlled
+
+TCP segment structure => default header => options까지
+
+TCP seq. #'s and ACKs
+TCP는 데이터를 구조화되어 있지 않고 순서대로 정렬된 바이트 스트림으로 본다.
+Seq. #'s => byte stream "number" of first byte in segment's data
+ACKs => 다른 쪽에서 예상되는 다음 바이트의 시퀀스 번호 / cumulative ACK
+receiver가 순서가 잘못된 세그먼트를 처리하는 방법 => 구현자에게 달려 있음
+Data for 1st segment (0,1,99) => sequence number 0 / 2st -> (1000,"",1999) => sequence number 1000? 1999?
+seq = 42 -> ack = 43 / seq = 79 -> ack = 80
+
+TCP Round Trip Time and Timeout
+타이머의 timeout value를 어떻게 설정..? 
+=> RTT보다 길게, BUT RTT는 다양함
+너무 짧으면 시간초과 => 불필요한 재전송
+너무 길면 segment 손실에 대한 느린 반응
+
+어떻게 RTT를 측정?
+SampleRTT => 세그먼트 전송부터 ACK 수신까지 측정된 시간 => 재전송 무시
+현재 SampleRTT뿐만 아니라 여러 최근 측정값의 평균을 낸다.
+EstimatedRTT = (1-a)*EstimatedRTT + a*SampleRTT
+과거 샘플의 영향은 기하급수적으로 빠르게 감소 / 일반적인 a값 : 0.125
+
+Setting the timeout
+RTT Estimation에 safety margin을 더해 timeout value 설정
+DevRTT => SampleRTT가 EstimatedRTT에서 얼마나 벗어나는지 추정
+DevRTT = (1-B)*DevRTT + B*|SampleRTT-EstimatedRTT| (편차에 따라 safety margin 조절)(보통 B = 0.25)
+타임아웃 초과 간격 : TimeoutInterval = EstimatedRTT + 4*DevRTT(safety margin)
+
+Simplified TCP senfer events
+app으로부터 데이터가 전송되었을때: seq#을 만든다(세그먼트의 첫 번째 데이터 바이트의 바이트 스트림 번호) -> 아직 실행 중이 아닌 경우 타이머 시작(가장 오래된 거 기준)
+timeout이 됐을 때: timeout을 유발한 segment만 재전송
+ACK를 받았을 때 : ack된 것으로 알려진 항목을 업데이트, 미해결 세그먼트가 있는 경우 타이머 시작
+TCP Sender 1개 상태
+
+TCP ACK generation [RFC 5681]
+retransmission scenarios
+1.lost ACK scenario 2.premature timeout(ACK 딜레이 길게) 3.Cumulative ACK(누적)
+
+Fast Retransmit => Timeout 발생전에 loss가 발생한걸 알 수 있는 척도
+3개의 중복 ACK 수신은 누락된 세그먼트 이후에 3개의 세그먼트가 수신되었음을 나타냄 => 세그먼트가 손실될 가능성이 높음 => 재전송 해야함
+
+TCP flow control => receiver의 버퍼가 overflow 되지 않도록 적절한 속도 조절(sender가 조절!)
+읽어서 차지하는 양보다 도착하는 양이 많아지면 점점 버퍼가 차게됨 => 꽉참 => 다음 도착 패킷 loss
+receive window => 수신자 버퍼의 비어있는 양을 알려줌(sender는 이걸 보고 보냄)
+어떻게 동작? rcvwindow = rcvBuffer - [LastByteRcvd = LastByteRead]
+rcvBuffer가 오버플로되지 않도록 보장해줌
+
+TCP Connection Management
+데이터 교환전 sender,receiver 핸드셰이크: 연결 설정 동의,연결 매개변수 동의
+
+connection 설정을 위한 Three way handshaking 
+step1: 클라이언트 호스트가 TCP SYN 세그먼트를 서버로 보냄(segment 헤더의 SYN 플래그 비트를 1로 설정, 초기 시퀀스 번호 지정, 데이터 X)
+step2: 서버 호스트가 SYN을 수신하고, SYNACK 세그먼트로 응답(서버는 버퍼를 할당,헤더의 SYN 플래그 비트를 1로 설정, 데이터 X, 서버 초기 시퀀스 번호 지정)
+step3: 클라이언트는 SYNACK을 수신하고 데이터가 포함될 수 있는 ACK 세그먼트로 응답(클라이언트는 버퍼를 할당,SYN비트는 0으로 설정)
+
+closing connection
+클라이언트,서버는 각각 연결 측을 닫습니다(FIN 비트 = 1인 TCP 세그먼트를 보냄) -> FIN 수신 시 ACK로 수신된 FIN에 응답(ACK는 자체 FIN과 결합될 수 있습니다.)
+-> 동시 FIN 교환이 처리 됨
+
+
+
+
+
+CH3-p4
+congestion control(너무 많은 sender, 너무 빠른 전송) => 네트워크 코어에서 트래픽을 조절하는 것
+flow Control과는 다름 / 패킷 손실, 긴 지연
+scenario1 => 하나의 라우더,무한 버퍼,입출력 링크 용량:R, 두 흐름, 재전송 X => 평균전송율이 R/2에 막힘(라우터의 절반만 쓰니) / 라우터가 혼잡해지면 지연이 기하급수적으로
+scenario2 => 하나의 라우터,유한 버퍼,시간 초과된 패킷을 sender가 재전송 /응용계층 전송율 = 처리율 , 전송계층 전송율(original + 재전송) >= 응용계층 전송율 /  R/2에 가까워지면 지연이 증가
+scenario2a=> 라우터가 비어있는 경우에만 패킷 송신 => loss x => 재전송 x 응용계층 전송율 = 처리율 / 전송계층 전송율 = 응용계층 전송율 / 지연손실/재전송은 유효 처리량을 감소
+scenario2b=> 버퍼가 가득차 라우터에서 패킷이 삭제될 수 있음 / 완벽히 패킷이 loss 발생했을때만 재전송 / 전송계층 전송율>=처리율 / 재전송 => 처리율감소 / 불필요한 중복으로 인해 유효 처리량 더욱 감소
+scenario2c=> 딜레이 떄문에 중복된 데이터 / R/2에서 전송할 때 일부 패킷은 필요하거나 불필요한 중복을 포함하여 재전송되어 전달
+"costs" of congestion => 주어진 goodput에 대한 추가 작업(재전송) / 불필요한 재전송: 링크는 pkt의 여러복사본을 전달
+scenario3 => multi path를 가정 / four sender, 유한 버퍼, 멀티 홉 path, 타임아웃/재전송 /호스트 a와 b 전송 a전송율이 엄청 빠르면 r1의 버퍼가 a로 가득채워짐 b는 전부 loss 처리율 = 0(극단적)
+업스트림 전송 용량/다운스트림 손실된 패킷에 대해 낭비되는 버퍼링
+
+End-to-End congestion control => sender와 receiver 서로 알아서 판단(네트워크 코어가 아무것도 안함)
+Network-assisted congestion control => 라우터가 즉각적인 피드팩제공(TCP ECN,ATM,DECbit protocols)
+
+TCP congestion control
+end-end control(네트워크 코어의 도움x)
+sender의 전송율 제한: LastByteSent - LastByteAcked <= cwnd(혼잡 윈도우) / rate(sender의 최고 전송율) = (cwnd/RTT)Bytes/sec => cwnd(윈도우사이즈)를 조절해서 전송율 조절
+어떻게 sender가 알까? => 손실 event = 시간초과 or 3개의 중복응답 => TCP sender는 손실 event후 속도(cwnd)를 줄임
+
+혼잡제어 알고리즘 => 혼잡을 감지하는 TCP sender 전송율 조절 알고리즘
+
+AIMD(additive increase, multiplicative decrease) => 접근방식 : 손실이 발생할 때까지 사용 가능한 대역폭을 검색하여 전송 속도를 늘림
+additive increase => 계속 cwnd 증가
+multiplicative decrease => 손실 발생시 window size(cwnd) 절반으로
+
+TCP Slow Start => 처음엔 속도 2배씩 증가, Loss 발생시 cwnd를 절반으로 줄이고 선형적으로 증가
+
+Refinement: inferring loss
+3개의 중복 답장 후 => cwnd 절반으로 줄임, window 선형 증가
+극심한 혼잡(시간 초과) 후 => cwnd를 1MSS로 초기화, window를 threshold값까지 지수적으로 증가, 그 후 선형증가
+
+Explicit congestion notification(ECN) => ECE=1로 세팅해서 보냄 => sender는 이 flagbit를 보고 자신의 속도제어
+
+TCP Fairness => K TCP 세션이 대역폭 R의 동일한 병목 링크를 공유하는 경우 각 세션의 평균 속도는 R/K여야 한다.(TCP에서 혼잡제어는 FAIRNESS만족)
+
+
+
+
+
+CH4-p1-1 Network Layer
+Network layer => 전송 호스트로부터 수신 호스트로 세그먼트 전송(전송측에서 세그먼트를 데이터그램으로 캡슐화,수신측에서 세그먼트를 transport layer로 전달)
+모든 호스트, 라우터(데이터그램처리)에 네트워크 계층 프로토콜 구현 / 라우터는 통과하는 모든 IP 데이터그램의 헤더 필드를 조사(forwarding table까지 보고 보냄)
+
+핵심Network-Layer 기능들
+forwarding => 라우터의 입력링크에서 라우터의 적절한 출력링크로 패킷을 이동
+routing => 소스로부터 목적지까지 패킷의 경로를 결정
+
+Data plane(forwarding 기능)
+Control palne(routing 기능) => 1. 기존 라우팅 알고리즘: 라우터에 구현 2. SDN(소프트웨어 정의 네트워킹): (원격)서버에 구현
+
+Per-router control plane => 각 라우터들이 서로 상호작용해 routing알고리즘(서로메세지 주고받음) 작동해 forwarding table 만들어짐
+SDN control plane => 각각의 라우터(local contro agents를 가지고 있음)들이 라우링 알고리즘 작동x, 서버에게 줘서 서버가 작동하도록 ->
+라우터의 control agent가 remote controller에 보냄 -> remoute controller가 router에게 forwarding table 보냄
+
+Network service model
+전송측에서 수신측까지 패킷을 전송하는 채널을 위한 서비스 모델은?
+개별 데이터그램에 대한 서비스의 예: 보장된 전달, 제한 지연 이내의 보장된 전달
+데이터그램 흐름에 대한 서비스의 예: 순서화 데이터그램 전달, 보장된 최소 대역폭, 보장된 최대 jitter
+인터넷 네트워크 계층 => 신뢰성x 그러므로 상위계층 전송계층에서 TCP보장
+
+Datagram networks: the Internet model(컨넥션x)
+네트워크 계층에서 호(call) 설정이 없음 / 라우터: end-to-end 연결에 관한 state를 유지하지 않음(connectionless) 
+목적지 호스트 주소를 사용하여 패킷을 전달(같은 source-dest 쌍 사이에 전달되는 패킷들이 다른 경로를 통해 전달될 수 있음)
+
+Datagram forwarding table(32bit ip address -> 2^32개의 테이블) => 패킷의 목적지 주소를 이용하여 패킷을 포워딩
+
+Longest prefix matching(가장 긴 접두사 일치) => 주어진 dest주소에 대한 전달 테이블 항목을 찾을 때 dest주소와 일치하는 가장 긴 주소 접두사를 사용(상위 21비트로 판단)(가장길게일치하는 패턴으로 보냄)
+
+Router
+라우터의 2가지 핵심 기능 => 1. 라우팅 알고리즘/프로토콜 수행(RIP,OSPF,BGP) 2. 데이터그램을 입력 링크로부터 출력 링크로 교환(switching(forwarding))
+
+입력 포트 decentralized switching(분산형 스위칭) => 중앙 라우팅 프로세서 호출 없이 각 입력 포트에서 결정 / 데이터그램 목적지가 주어지면, 입력 포트 메모리의 라우팅 테이블을
+사용하여 출력 포트를 검색 / 목표: 'line speed'로 완전히 입력 포트 처리 / queuing: 스위치 구조(switching fabrics)로 전달(forwarding)속도보다 더 빠르게 데이터그램이 도착하는 경우
+
+switching fabrics(스위칭 구조) => 입력 버퍼에서 적절한 출력 버퍼로 패킷을 전송. 전환 속도: 패킷이 입력에서 출력으로 전송될 수 있는 속도
+세가지 종류 => 1.memory 2.bus 3.crossbar
+
+switching via memory(Cisco 8500) => 1세대 라우터 / 패킷이 도착하면 입력 포트는 CPU에게 인터럽트를 보내어 메모리에 복사됨 / 속도는 메모리 대역폭에 의해 제한됨
+Modern routers: 입력 포트 프로세서가 목적지 주소 탐색과 적절한 메모리 위치로 패킷 저장을 수행
+
+switching via a Bus(Cisco 5600) => 입력 포트 메모리로부터의 데이터그램이 공유버스를 통해 출력 포트 메모리로 직접 전달됨 / 버스 경쟁: 스위칭 속도는 버스대역폭에 의해 제한됨
+
+switching via an interconnection Network(병렬성 지원)(Cisco 12000) => 버스 대역폭 제한을 극복 / 멀티프로세서 컴퓨터 구조에서 프로세서 연결을 위해 Banyan networks 등의 interconnection nets들이 개발됨
+/ Advanced design: 가변 길이 데이터그램을 고정길이 셀로 단편화하고 셀에 태그를 붙여 스위칭한 후, 출력 포트에서 셀을 원래의 데이터그램으로 재결합
+
+출력 포트 => 데이터그램이 전송 속도보다 더 빠르게 스위치 구조로부터 도착할 때 버퍼링이 요구됨 / Scheduling discipline이 전송을 위해 큐된 데이터그램들 중에서 선택
+
+Input Port queuing => 출력 포트가 결정되면 스위치 구조에 전달되지만, 임시적으로 블록킹될 수 있음 -> queuing은 입력 큐에서 발생할 수 있음.
+Head-of-the-Line(HOL) blocking: 큐의 앞쪽에 큐된 데이터그램은 큐에서 다른 데이터그램들이 전달되는 것을 방해
+queuing딜레이와 loss는 입력 버퍼 오버플로우 떄문임 / 스위치를 통한 도착 속도가 출력 링크 속도를 초과하면 버퍼링 발생
+
+
+
+
+
+CH4-p1-2
+IP datagram format
+time to live => 데이터그램이 라우터 통과할때마다 -1 -> ..... 결국 0이 됨 이렇게 되는데 걸리는 시간
+fragment offset => 순서결정 /  20 bytes of TCP , 20 bytes of IP => 40bytes + app layer overhead
+
+IP Fragmentaiton & Reassembly
+네트워크 링크는 MTU(링크 계층 프레임이 전달할 수 있는 최대 크기)를 가짐(MTU에 따라 단편화 발생)(MTU는 링크 계층 프로토콜에 따라 다 다름)
+큰 IP datagram은 네트워크 내에서 분할됨(단편화)(최종 목적지에서만 재조립(reassembly)됨, 단편을 식별하고 순서를 맞추기 위해 IP header 비트들이 사용됨)
+fragflag = 0 => 단편화 x / 첫 offset = 0 / 그 후 byte/8?
+
+IP Addressing
+IP address => 인터페이스에 대한 32-bit 식별자(호스트,라우터)
+interface => 호스트/라우터와 물리 링크 사이의 연결(라우터는 보통 여러 개의 인터페이스들을 가짐, 호스트도 여러 개 가질 수 있음)
+ip주소는 각 인터페이스에 관련됨 / 32bit -> 8bit단위로 분할해 10진수로!
+
+Subnets
+ip address => subnet part, host part
+IP 주소의 subnet 부분이 동일한 값을 가지는 장치 인터페이스들, 라우터의 개입없이 서로 물리적으로 도달 가능
+
+subnet 결정 => 호스트나 라우터에서 각 인터페이스 분리, 고립된 네트워크의 섬 생성, 고립된 네트워크 각각을 subnet이라고 부름 / 223.1.3.0/24 => 전체 32bit에서 상위24bit가 subnet주소다!
+
+"class-full" addressing
+주소 공간의 비효율적 사용, 주소 공간 고갈 등등 단점
+A,B,C,D / A class 할당 => 받는 network 2^24 / B => 2^16 / C => 2^8 / D => 1대 N통신
+
+CIDR(Classless InterDomain Routing) => 주소에서 네트워크 부분이 8,16,24로 제한되어 있지 않고 임의의 길이 비트로 선택 가능
+주소 포맷: a.b.c.d/x (x는 주소에서 네트워크 부분 비트 길이(상위))
+
+호스트가 IP 주소 얻는법 => 1. 시스템 관리자에 의한 수동 2. DHCP => 서버로부터 동적으로 IP주소 획득("plug-and-play)
+네트워크가 IP 주소의 네트워크(subnet)부분을 얻는법 => ISP의 주소 공간에서 할당된 부분을 얻는다.(20 / 23 하위 3비트)
+
+Hierarchical addressing: 경로 집약(route aggregation) => 계층적 주소화는 라우팅 정보의 효율적인 광고를 허용: 내부의 네트워크 구조를 외부에 알릴 필요 없이, 
+하나의 네트워크 접두사를 사용(라우팅의정보를 인터넷에 알려줌 / ISP네트워크주소만 알려주면됨)
+
+ISP가 주소 블록을 얻는법 => ICANN(Internet Corporation for Assigned Names and Numbers)(주소 할당, DNS root 서버 관리, 도메인 이름 할당 등)
+
+source -> dest 어떻게 datagram이 전달?
+IP datagram => 데이터그램은 소스에서 목적지로 전송될 때 변경되지 않고 유지됨 / 주소 필드가 관심 대상임
+A가 IP datagram을 B로 전송 => 라우팅 테이블에서 B의 네트워크 주소를 찾음 -> B가 A와 같은 네트워크에 있음을 발견 -> 링크 계층은 B로 직접 데이터그램을 전달(B와 A는 직접 연결됨)
+A에서 E로 전송 => 다른 네트워크에 있음 -> 순차적으로 전달
+
+DHCP(Dynamic Host Configuration Protocol) => 호스트가 네트워크에 참여할 때 네트워크 서버로부터 동적으로 IP주소 획득(사용중인 주소 임대기간 갱신가능, UDP사용)
+호스트가 "DHCP discover"메세지를 브로드캐스트(누구한테 보내는지 모르니 전부에게) -> DHCP 서버는 "DHCP offer"메세지로 응답 -> 
+호스트는 IP 주소 요청: "DHCP REQUEST"메세지 -> DHCP 서버는 주소 전송: "DHCP ack" 메세지
+
+
+
+
+CH4-p2
+NAT: Network Address Translation
+동기: 로컬 네트워크는 외부 네트워크가 관심을 가지는 단지 하나의 IP주소만을 사용
+발신 데이터그램(outgoing datagrams) => 모든 발신 데이터그램의 (source IP주소, port번호)를 (NAT IP주소, 새로운 port 번호)로 변경 / 즉 사설ip를 공인된ip주소로 변환
+수신 데이터그램(incoming datagrams) => 사설 ip주소 -> 공인된 ip주소
+NAT 해석 테이블에 모든(source ip주소, port 번호)와 (NAT IP주소,새로운 port번호)의 해석 쌍을 기억 / 포트번호가 식별자 역할!
+NAT => 라우터는 계층 3까지만 처리, 종단 간 논의에 어긋남, 주소부족 문제는 NAT으로 근본적인 해결 X / 그러므로 논쟁중임
+
+ICMP: Internet Control Message Protocol => 네트워크 레벨에서의 정보를 통신하기 위해 호스트, 라우터, 게이트웨이 의해 사용됨
+오류 보고 / echo request,reply(인터넷 상에 연결된 호스트가 실제 동작중인지)
+ICMP 메시지는 IP 데이터그램으로 전송 / ICMP 메세지 => ICMP type과 code 필드가 있고, 메세지 type에 의존하는 8 바이트로 구성
+
+Traceroute => 출발지에서 목적지 까지의 경고를 발견하면서 각각의 중간경로에서 발생하는 지연을 알려주는 도구
+
+IPv6 => 헤더 형식이 빠른 처리와 전달에 도움을 줌, QoS 보장이 용이하도록 헤더 변경/플로우 레이블 필드를 이용해 패킷 분류,보안 기능 지원(인증 절차, 데이터 무결성 보호, 선택적인 메시지 발신자 확인 기능, 확장헤더를 이용한 종단간 암호화 기능 등) 
+형식 => 고정 길이 40 바이트 헤더, 단편화 허용 X, 체크섬 X(라우터에서 처리속도 증가)
+자동 주소 설정 => IPv6에서는 자동으로 로컬 IPv6 주소를 생성, 자동 주소 생성은 라우터가 제공하는 네트워크 프리픽스 정보와 MAC주소를 사용, 시스템 관리와 설정에 필요한 시간과 비용 줄임
+차이점 => 20PAGE
+
+IPv6 Header
+Priority => 플로우에서 데이터그램의 우선순위를 식별 / Flow Label => 같은 'flow'에서 데이터그램 식별 / Next header(이 값으로 확장헤더와 상위데이터 구분) => 데이터에 대한 상위 계층 프로토콜 식별
+
+ICMPv6 => 추가적인 메세지 유형 정의, 멀티캐스트 그룹 관리 기능
+
+IPv6주소 => 128비트로 구성되는데, 16비트씩 콜론으로 나누고, 각 필드를 16진수로 표현하는 방법을 사용 (상위0은 생략가능 / 연속된0 전부 삭제 후 ::로만 표현가능(1번만가능))
+IPv4주소를 6로 표현하려면 하위 32비트는 그대로 채우고, 상위 비트를 모두 0으로 채우는 방식 사용
+
+모든 라우터들이 동시에 업그레이드 될 수 없으니 IPv4와 IPv6가 혼용된 라우터로 네트워크가 어떻게 동작?
+=> 1.Dual Stack => dual stack을 가진 라우터는 포맷들 간의 전환 가능(but ipv6의 기능 잘 지원 못함)
+   2. Tunneling => IPv4 라우터들 간에는 IPv6가 IPv4 데이터그램에서 payload로 전달됨(가상의터널, 캡슐화로 구현(ipv6를 ipv4의 페이로드부분에 붙힘))
+디캡슐레이션 / 헤더필드부분이 그대로 보존됨
+
+
+
+
+
+CH5-p1
+Routing protocols => 좋은(적은비용, 속도가빠른,적은 혼잡)경로로 결정! / 경로비용이 최소가 되는걸 찾기 => Routing
+그래프 추상화 => 그래프 노드(N)는 라우터,그래프 간선(E)은 물리적인 링크
+
+라우팅 알고리즘 
+Global: 모든 라우터들이 완전한 위상과 링크 비용 정보를 가짐 => "link state" algorithms
+Decentralized: 라우터는 물리적으로 연결된 이웃 노드, 이웃노드와의 링크 비용 정보를 가짐 => "distance vector" algorithms
+
+link state algorithms
+Dijkstra's algorithms => 네트워크 위상, 링크 비용들이 모든 노드들에게 알려짐(각각의 라우터들이 자신의 링크에 대한 상태정보를 broadcast)
+/ 한 노드로부터 모든 다른 노드까지의 최소 비용 경로를 계산(forwarding table 제공) / 반복적 / 
+c(i,j):노드 i에서 j로의 링크 비용(직접 연결x면 infinite비용을 가짐) / D(v): 소스에서 목적지 v까지 현재 최소비용을 갖는 경로의 비용
+p(v): 소스에서 v까지 경로에서 v의 이전 노드 / N: 소스부터 최소 비용 경로가 명확히 알려진 노드들의 집합
+알고리즘 복잡도: n nodes / 각 반복: N에 포함되지 않은 모든 노드 w 검사 필요 / n*(n+1)/2비교: O(n^2) / 좀 더 효율적인 구현 가능: O(nlogn)
+메시지 복잡도: 각 라우터는 다른 n개의 라우터에게 링크 상태 정보를 broadcast해야함
+진동문제 => 링크 비용이 트래픽 양에 의존하는 경우, 경로 진동이 가능
+
+
+
+
+CH5-p2
+Distance Vector Routing algorithms
+반복적 => 노드가 정보를 교환하지 않을 때까지 계속 / 비동기 => 노드는 lock 단계에서 정보를 교환할 필요가 없고,반복할 필요가 없다
+분산적 => 각 노드는 단지 직접 연결된 이웃 노드와 통신
+
+Bellman-Ford equation
+dx(y)(x->y 최소경로비용) = min{c(x,v)(노드x에서v로의 링크비용) + dv(y)}
+각 노드는 주기적으로 자신의 거리 벡터 추정치(DV)를 이웃에게 보냄, 노드 X가 이웃으로 부터 새로운 DV 추정치를 수신하면 BF 방정식을 사용하여 자체 DV를 업데이트
+반복, 비동기 => 로컬 링크 비용변경, 이웃으로부터의 DV 업데이트 메시지
+분산, 자체 정치 => 각 노드는 DV가 변경될 때만 이웃에게 알림
+동작 과정 => 기다림(로컬링크비용변경 OR 이웃 메시지) -> 이웃으로부터 받은 DV를 사용해 DV 추정치를 recompute한다. -> 목적지로 향하는 DV가 변경된 경우 이웃에게 알림
+
+Link cost changes => count to infinity문제 
+해결 => 노드가 자신이 경로로 선택하지 않은 링크는 이웃노드에게 알려주지 않는다
+
+Link state algorithms vs Distance Vector algorithms
+
+메시지 복잡도
+LS => n노드, E링크에 대해, 각각 O(nE)메시지가 전달됨
+DV => 단지 이웃 노드들 사이에만 교환됨
+
+수렴속도
+LS => O(n^2)알고리즘은 O(nE)메시지를 요구
+DV => 수렴 시간은 가변적임(라우팅 루프발생가능, count-to-infinity 문제)
+
+강건성 => 라우터가 오장독하는 경우 어떤일이 발생?
+LS => 노드는 잘못된 링크 비용을 브로드캐스트, 각 노드는 자신의 테이블만을 계산함
+DV => DV노드는 잘못된 경로 비용을 알림, 각 노드의 테이블은 다른 노드들에 의해 사용됨(전체 네트워크로 오류가 전파됨)
+
+
+
+
+
+
+CH5-p3
+Hierarchical Routing => 라우터들을 지역으로 집합화, "autonomous systems"(As)(a.k.a "domains")
+intra-AS routing(내부에서의 라우팅) => 같은 AS에 있는 라우터들은 같은 라우팅 프로토콜을 수행, 다른 AS에서 라우터들은 다른 intra-AS라우팅 프로토콜을 수행, gateway router AS의 "가장자리(edge)"에 위치, 다른 AS에서의 라우터와 링크를 가짐
+inter-AS routing=> AS들 간의 라우팅, Gateway가 inter-domain routing을 수행
+gateway routers => AS에서 특별한 라우터, AS에서 모든 다른 라우터들과 intra-AS 라우팅 프로토콜을 수행, 또한 외부 목적지 AS로의 라우팅에 대한 책임을 가짐(다른 게이트웨이 라우터들과 inter-AS routing 프로토콜을 수행)
+
+Interconnected ASes
+AS 내 및 AS 간 라우팅 알고리즘으로 구성된 포워딩 테이블(목적지 결정)
+
+Intra-AS Routing(IGP,RIP,OSPF,IGRP)
+
+RIP(Routing Information Protocol) => Distance vector algorithm / 1982년 BSD-UNIX 배포판 / Distance metric: hop의 수(각 링크는 1의 비용을 가짐, 최고 경로 비용은 15로 제한(15hop이 최대))
+Response 메시지를 통해 매 30초마다 이웃끼리 교환됨(advertisement) / 각 advertisement(forwarding table을 이웃노드에게 알려줌) => AS내에서 25개 목적지 네트워크까지의 라우팅 테이블 엔트리를 포함
+Link Failure and Recovery => 180초 후에 이웃으로부터 advertisement를 듣지 못하면 => 이웃/링크에 도달할 수 없다고 판단
+이웃을 통한 경로는 invalidate됨, 도달가능한 이웃에게 새로운 advertisement를 전송, 차례롤 이웃은 새로운 advertisement를 전송, 링크 failure 정보는 빠르게 전체 네트워크로 전파, ping-pong loops방지를 위해 poison reverse가 사용됨(16hops)
+RIP Table processing => RIP 라우팅 테이블은 route-d라 불리는 application-level 프로세스에 의해 관리됨(UNIX) / advertisements는 UDP 패킷으로 주기적으로 반복되어 전송됨
+Default router => 라우팅 테이블에서 명시적으로 기재되지 않은 목적지를 위한 라우터, 193.55.114.129 
+멀티캐스트주소: 224.0.0.0 / Loopback interface: 127.0.0.1
+
+OSPF(Open Shortest Path First) => "open": 라우팅 프로토콜 명세가 공용으로 유용 / Link state algorithm 사용(LS packet 전파, 각 노드에서 완전한 토폴리지 맵을 가짐, Dijkstra's algorithm을 사용한 경로 계산)
+/ OSPF는 모든 라우터에게 라우팅 정보를 브로드캐스트(advertisements는 전체 AS에 보급됨, 링크 상태 변경시 또는 매 30분마다 정기적으로 브로드캐스트, IP에 의해 직접 운반되는 OSPF 메시지로 전달됨)
+OSPF "진보된" 특징 => 보안: 모든 OSPF 메시지는 인증됨 / 여러 동일 비용 경로 허용(RIP는 하나의 경로만) / 각 링크에 대해, 다른 TOS를 위한 여러 가지 cost metrics 
+/ 유니캐스트와 멀티캐스트를 위한 통합된 지원(Multicast OSPF는 OSPF와 동일한 토폴리지 데이터 기반을 사용) / Hierarchical OSPF in large domains.
+
+Hierarchical OSPF => Two-level hierarchy: 로컬 영역, 백본 / 영역 내에서만 link-state advertisements, 각 노드는 상세한 영역 토폴리지를 가짐; 다른 영역의 네트워크로 최단 경로만을 안다.
+Area border routers(ABR): 외부 영역으로의 패킷 라우팅을 책임짐
+Backbone routers: 백본에 한정된 OSPF routing 수행
+Boundary routers: 다른 AS에 연결. 다른 AS에 속한 라우터와 라우팅 정보 교환
+
+
+
+
+
+CH5-p4
+Intra-AS, Inter-AS routing 이 두 결과로 forwarding table이 만들어짐
+
+Hot potato routing => 두 라우터중 더 가까운거를 보냄
+
+Inter-AS routing: BGP(Border Gateway Protocol)(사실상 표준)
+1.eBGP: 인접 ASS에서 서브넷 연결 가능성 정보를 얻음
+2.iBGP: AS 내부의 모든 라우터에 연결 가능성 정보를 전파
+3.연결 가능성, 정책을 바탕으로 서브넷에 대한 "GOOD"경로를 결정(정책이 가장큰 우선순위)
+자기가 잘 작동되고있따고 주기적으로 알림
+
+BGP BASICS
+라우터 쌍은 반영구적 TCP연결을 통해 라우팅 정보를 교환한다(BGP 세션) EX-> AS2에서 X(AS3에 있음)로향하는게 오면 AS3는 책임지고 X로 라우팅 해주곘다.
+접두사를 광고할 때 광고에는 BGP 속성이 포함됨
+두 속성 => 1.AS-PATH: 접두사에 대한 광고가 전달된 AS가 포함되어 있음 / 2.NEXT-HOP: 다음 홉 AS에 대한 특정 내부 AS 라우터를 나타냄
+Policy-based routing => 경로 알림을 수신하는 게이트웨이는 가져오기 정책을 사용하여 경로를 수락/거부함. AS정책은 또한 다른 인접 AS에 대한 경로를 광고할지 여부도 결정
+
+BGP 메시지는 TCP를 사용하여 교환됨
+OPEN: Peer와 TCP connection을 열고 전송자를 인증 / UPDATE: 새로운 경로를 advertises / KEEPALIVE: UPDATE를 보내지 않지만 CONNECTION이 유지되고 있음을 알림; 또한 OPEN 메시지의 ACKS으로 사용
+NOTIFICATION: 이전 메시지에서 에러를 보고; 또한 connection을 close하기 위해 사용
+
+Intra,Inter-AS routing 차이점
+정책 
+Inter-AS: 관리자는 자신의 트래픽이 어떻게 라우트되고, 누가 자신의 네트워클 통해 라우트되는지를 제어하기를 원함.
+Intra-AS: 하나의 관리자, 따라서 정책 결정은 중요하지 않음
+확장성
+계층적 라우팅은 테이블 크기를 줄이고, UPDATE 트래픽을 줄임
+성능
+Intra-AS: 성능에 초점을 맞춤
+Inter-AS: 정책이 성능보다 우선함
